@@ -81,6 +81,21 @@
   .panel { background: #111118; border: 1px solid #2a2a3a; border-radius: 14px; padding: 22px 26px;
            max-width: 92vw; max-height: 80vh; overflow: auto; }
   .panel h2 { margin: 0 0 14px; font-size: 22px; }
+  .panel { width: min(440px, 92vw); box-sizing: border-box; }
+  .blist { display: flex; flex-direction: column; gap: 8px; }
+  .brow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px;
+          background: #181822; border: 1px solid #23232f; }
+  .brow.podium { background: #1c1c2a; }
+  .brow.me { border-color: #1f6feb; box-shadow: 0 0 0 1px #1f6feb inset; }
+  .brow .rank { width: 30px; text-align: center; font-size: 18px; font-weight: 700; opacity: .9; flex: none; }
+  .brow .who { flex: 1; min-width: 0; }
+  .brow .nm { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .brow.me .nm { color: #4dc3ff; }
+  .brow .stats { font-size: 12px; opacity: .6; margin-top: 2px; display: flex; gap: 10px; flex-wrap: wrap;
+                 font-variant-numeric: tabular-nums; }
+  .brow .score { text-align: right; flex: none; font-variant-numeric: tabular-nums; }
+  .brow .score b { display: block; font-size: 22px; line-height: 1; }
+  .brow .score small { font-size: 10px; opacity: .55; text-transform: uppercase; letter-spacing: .5px; }
   table { border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 15px; }
   th, td { padding: 7px 12px; text-align: right; border-bottom: 1px solid #222; white-space: nowrap; }
   th { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; opacity: .6; font-weight: 600; }
@@ -122,9 +137,8 @@
   <div class="player">Spieler: <span id="pname">–</span><button id="rename">ändern</button></div>
   <div class="overlay" id="boardOv"><div class="panel">
     <h2>Rangliste</h2>
-    <table><thead><tr><th>#</th><th>Name</th><th>max Klicks/s</th><th>Klicks gesamt</th><th>Arbeit</th></tr></thead>
-    <tbody id="boardBody"></tbody></table>
-    <p style="margin-top:12px">Arbeit: 0,6 N Tastenkraft × 0,5 mm Tastenweg ≈ 0,3 mJ pro Klick.</p>
+    <div class="blist" id="boardBody"></div>
+    <p style="margin-top:12px;font-size:12px">Arbeit: 0,6 N Tastenkraft × 0,5 mm Tastenweg ≈ 0,3 mJ pro Klick.</p>
     <button class="close" id="closeBoard">Schließen</button>
   </div></div>
   <div class="overlay" id="nameOv"><div class="panel">
@@ -453,8 +467,12 @@ function renderTop3(){
 }
 function renderBoard(){
   $('boardBody').innerHTML = merged().map((e,i) =>
-    `<tr class="${e.me ? 'me' : ''}"><td>${i+1}</td><td>${esc(e.name)}</td><td>${fmtCps(e.maxCps)}</td>` +
-    `<td>${(e.clicks||0).toLocaleString('de-AT')}</td><td>${fmtJ((e.clicks||0) * J_PER_CLICK)}</td></tr>`).join('');
+    `<div class="brow${e.me ? ' me' : ''}${i < 3 ? ' podium' : ''}">` +
+      `<div class="rank">${i < 3 ? ['🥇','🥈','🥉'][i] : i+1}</div>` +
+      `<div class="who"><div class="nm">${esc(e.name)}</div>` +
+        `<div class="stats"><span>${(e.clicks||0).toLocaleString('de-AT')} Klicks</span><span>${fmtJ((e.clicks||0) * J_PER_CLICK)}</span></div></div>` +
+      `<div class="score"><b>${fmtCps(e.maxCps)}</b><small>Klicks/s</small></div>` +
+    `</div>`).join('') || '<div class="empty">Noch keine Einträge</div>';
 }
 $('openBoard').addEventListener('click', () => { renderBoard(); $('boardOv').classList.add('show'); });
 $('closeBoard').addEventListener('click', () => $('boardOv').classList.remove('show'));
