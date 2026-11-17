@@ -509,6 +509,30 @@ try {
 } catch(e) { myId = 'tmp-' + Math.random().toString(36).slice(2); }
 myId = myId.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40);
 
+let mySeason = null;
+try { mySeason = localStorage.getItem('bestellen_season'); } catch(e) {}
+// Nach einem Reset der Rangliste: eigene Werte auf 0 setzen
+function checkSeason(r){
+  const srv = r.headers.get('X-Season');
+  if (!srv || srv === mySeason) return false;
+  const wasReset = mySeason !== null;
+  mySeason = srv;
+  try { localStorage.setItem('bestellen_season', srv); } catch(e) {}
+  if (!wasReset) return false;
+  best = 0; realClicks = 0; count = 0; beatThisRun = false;
+  try { localStorage.setItem('bestellen_best_cps', '0'); } catch(e) {}
+  saveLocal();
+  $('count').textContent = 0; $('real').textContent = 0; $('joule').textContent = fmtJ(0);
+  $('level').textContent = 'Level 1 · ' + levels[0][1];
+  board = []; renderTop3();
+  toast('Neue Runde – Rangliste zurückgesetzt!', '#ffd84d');
+  return true;
+}
+function payload(){
+  const p = { id: myId, name: playerName, maxCps: Math.round(best * 10) / 10, clicks: realClicks };
+  if (mySeason !== null) p.season = mySeason;
+  return JSON.stringify(p);
+}
 let saveTimer = null, saving = false, dirty = false;
 function scheduleSave(){
   if (!playerName) return;
@@ -523,9 +547,11 @@ async function doSave(){
   try {
     const r = await fetch('/api/scores', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: myId, name: playerName, maxCps: Math.round(best * 10) / 10, clicks: realClicks })
+      body: payload()
     });
+    checkSeason(r);
     if (r.ok) { applyBoard(await r.json()); $('boardNote').textContent = ''; }
+    else if (r.status === 409) { /* Runde wurde zurückgesetzt, Werte sind schon auf 0 */ }
     else $('boardNote').textContent = 'Speichern fehlgeschlagen.';
   } catch (e) {
     dirty = true; $('boardNote').textContent = 'Rangliste nicht erreichbar.';
@@ -534,7 +560,7 @@ async function doSave(){
 addEventListener('pagehide', () => {
   if (!dirty || !playerName) return;
   try {
-    navigator.sendBeacon('/api/scores', new Blob([JSON.stringify({ id: myId, name: playerName, maxCps: Math.round(best*10)/10, clicks: realClicks })], { type: 'application/json' }));
+    navigator.sendBeacon('/api/scores', new Blob([payload()], { type: 'application/json' }));
   } catch(e) {}
 });
 
@@ -552,6 +578,7 @@ function applyBoard(rows){
 async function loadBoard(){
   try {
     const r = await fetch('/api/scores', { cache: 'no-store' });
+    checkSeason(r);
     if (r.ok) { applyBoard(await r.json()); if ($('boardNote').textContent === 'Rangliste nicht erreichbar.') $('boardNote').textContent = ''; }
     else $('boardNote').textContent = 'Rangliste nicht erreichbar.';
   } catch (e) { $('boardNote').textContent = 'Rangliste nicht erreichbar.'; }

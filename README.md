@@ -29,3 +29,12 @@ Den Ordner zum Veröffentlichen mit Enter bestätigen (`public`, kommt aus netli
 - Gespeichert wird in Netlify Blobs (Store `scores`), ein Eintrag pro Spieler.
 
 Werte über 30 Klicks/s lehnt der Server als unrealistisch ab.
+
+## Rangliste zurücksetzen
+
+1. Einmalig in Netlify: Project configuration → Environment variables → „Add a variable“
+   Key: `RESET_KEY`, Value: ein Passwort deiner Wahl. Danach einmal neu deployen (Deploys → Trigger deploy).
+2. Zum Zurücksetzen im Browser öffnen:
+   `https://DEINE-ADRESSE.netlify.app/api/reset?key=DEIN-PASSWORT`
+
+Alle Einträge werden gelöscht, und die gespeicherten Werte auf den Geräten der Spieler starten wieder bei 0.
